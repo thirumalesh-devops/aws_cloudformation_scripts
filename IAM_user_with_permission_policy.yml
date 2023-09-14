@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create an IAM user with access keys and AdministratorAccess policy
+
+Resources:
+  IAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: MyIAMUser
+      ManagedPolicyArns:
+        - !Ref IAMAdministratorAccessPolicy
+
+  IAMAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref IAMUser
+
+  IAMAdministratorAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: AdministratorAccess
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: '*'
+            Resource: '*'
+
+  #PolicyAttachment:
+  #  Type: AWS::IAM::User
+  #  Properties:
+  #    UserName: !Ref IAMUser
+  #    PolicyArn: !Ref IAMAdministratorAccessPolicy
+
+Outputs:
+  IAMUserName:
+    Description: IAM user name
+    Value: !Ref IAMUser
+
+  IAMUserAccessKeyId:
+    Description: Access key ID for the IAM user
+    Value: !Ref IAMAccessKey
+
+  IAMUserSecretAccessKey:
+    Description: Secret access key for the IAM user
+    Value: !GetAtt IAMAccessKey.SecretAccessKey

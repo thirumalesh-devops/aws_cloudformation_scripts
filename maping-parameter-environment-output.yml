@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Output Practice
+Parameters:
+  MyKeyName:
+    Description: Select the key name
+    Type: AWS::EC2::KeyPair::KeyName
+  MyEnvironmentName:
+    Description: Select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    ConstraintDescription: Must be devlopment or product
+  Region:
+    Type: String
+    Default: ap-south-1
+    AllowedValues:
+      - ap-south-1
+      - ap-northeast-1
+Conditions:
+   CreateKey: !Or [!Equals [!Ref AWS::Region, us-east-1], !Equals [!Ref AWS::Region, us-west-1]]
+ KeyName: !If [CreateKey, new-key, manu-key]
+
+Mappings:
+  RegionTypeami:
+    ap-south-1:
+      dev: ami-0d13e3e640877b0b9
+      prod: ami-0f5ee92e2d63afc18
+    ap-northeast-1:
+      dev: ami-0d3bbfd074edd7acb
+      prod: ami-0d52744d6551d851e
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+Resources:
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionTypeami, !Ref "AWS::Region", dev]
+      InstanceType: !FindInMap [MyEnvironmentMap, [!Ref MyEnvironmentName], instanceType]
+      KeyName: !FindInMap [MyEn]
+        Fn::If:
+          - Isapsouth
+          - redhat.linux
+        Fn::If:
+          - Isapnorth
+          - tiru.linux
+      BlockDeviceMappings:
+       - 
+         DeviceName: /dev/sdf
+         Ebs:
+           VolumeType: io1
+           Iops: 200
+           DeleteOnTermination: true
+           VolumeSize: 5
+      SecurityGroups: 
+        #- !If [ createSECfordev, !Ref MyDevGlobalSecurityGroup, dev ]
+        - !Ref MyDevGlobalSecurityGroup
+  
+  MyDevGlobalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    #Condition: createSECfordev
+    Properties:
+      GroupDescription: My Dev Environment Global Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+ 
+Outputs:
+  MyInstanceId:
+    Description: My Instance Id
+    Value: !Ref MyVMInstance
+  MyDNSName:
+    Description: My Public DNS Name
+    Value: !GetAtt MyVMInstance.PublicDnsName
+  MyInstanceAZ:
+    Description: Availability zone will be displayed
+    Value: !GetAtt MyVMInstance.AvailabilityZone

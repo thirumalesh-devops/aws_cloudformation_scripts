@@ -1,0 +1,13 @@
+Parameters:
+  MyAWSamiID:
+    Description: select the linux
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref MyAWSamiID
+      InstanceType: t2.micro
+      SecurityGroups:
+           - !ImportValue thirumaleshsec

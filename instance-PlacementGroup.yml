@@ -1,0 +1,63 @@
+---
+Parameters:
+  InstanceType:
+    Type: String
+    Default: "t2.large"
+    AllowedValues:
+         - "t2.micro"
+         - "t2.nano"
+         - "t2.small"
+         - "t2.medium" 
+         - "t2.large" 
+         - "t2.xlarge" 
+         - "t2.2xlarge"
+  ImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: ami-0d13e3e640877b0b9
+  Environment:
+    Type: String
+    Default: cluster
+    AllowedValues:
+         - "cluster"
+         - "spread"
+         - "partition"
+  PlacementStrategyType:
+    Type: String
+    AllowedValues:
+         - "cluster"
+         - "spread"
+         - "partition"
+
+Rules:
+  clusterPlacementGroupType:
+    RuleCondition: !Equals
+      - !Ref Environment
+      - cluster 
+    Assertions:
+      - Assert:
+          !Equals [t2.large, !Ref InstanceType]
+        AssertDescription: 'For a cluster environment, the instance type must be t2.large'
+  spreadPlacementGroupType:
+    RuleCondition: !Equals 
+      - !Ref Environment
+      - spread
+    Assertions:
+      - Assert:
+          'Fn::Contains':
+            - - t2.nano
+              - t2.micro
+            - !Ref InstanceType
+        AssertDescription: 'For a spreaad environment, the instance type must be t2.nano or t2.micro'
+        
+Resources:
+  PlacementGroup:
+    Type: AWS::EC2::PlacementGroup
+    Properties:
+      Strategy: !Ref PlacementStrategyType
+
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      PlacementGroupName: !Ref PlacementGroup

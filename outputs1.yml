@@ -1,0 +1,28 @@
+Resources:
+  AlcSecGroup01:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH via Port Number 22
+      SecurityGroupIngress:
+      #Fin Team access the below subnet
+        - CidrIp: 172.31.0.0/20
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp
+      #Sales team access the below subnet
+        - CidrIp: 172.31.16.0/20
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp
+      #Infra team access the below subnet
+        - CidrIp: 172.31.32.0/20
+          FromPort: 22
+          ToPort: 22
+          IpProtocol: tcp
+Outputs:
+  StackSSHSecGroup:
+    Description: The ssh security Group for ALC company
+    Value: !Ref AlcSecGroup01
+    Export:
+      Name: SSHalcSecGroup
+

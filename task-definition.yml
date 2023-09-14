@@ -1,0 +1,56 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a task definition for a web server.
+Resources:
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: MyFargateCluster
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+
+  ECSTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      ContainerDefinitions:
+        - Name: first-run-task
+          Image: 'httpd:latest'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: entryPoint
+              Value: 'sh, -c'
+            - Name: command
+              Value: >-
+                /bin/sh -c \"echo '<html> <head> <title>Amazon ECS Sample
+                App</title> <style>body {margin-top: 40px; background-color:
+                #333;} </style> </head><body> <div
+                style=color:white;text-align:center> <h1>Amazon ECS Sample
+                App</h1> <h2>Congratulations!</h2> <p>Your application is now
+                running on a container in Amazon ECS.</p> </div></body></html>'
+                >  /usr/local/apache2/htdocs/index.html && httpd-foreground\"
+          EnvironmentFiles: []
+      Family: first-run-task
+      Cpu: 1 vCPU
+      Memory: 3 GB
+  
+  ECSService:
+    Type: 'AWS::ECS::Service'
+    DependsOn: ECSCluster
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 2  
+      TaskDefinition: arn:aws:ecs:ap-south-1:730563286606:task-definition/first-run-task:2
+      LaunchType: EC2   
+Outputs:
+  ECSTaskDefinition:
+    Description: The created Taskdefinition.
+    Value: !Ref ECSTaskDefinition

@@ -1,0 +1,33 @@
+Resources:
+  secgrphttpallow:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription : SG to create
+      GroupName: mysecgrp1
+      SecurityGroupIngress : 
+       - IpProtocol : tcp
+         FromPort : 80
+         ToPort : 80
+         CidrIp : 192.143.96.0/20
+       - IpProtocol: tcp
+         FromPort: 22
+         ToPort: 22
+         CidrIp: 192.143.96.0/20
+      Tags:
+        - Value: Name
+            Key: secgrphttpallow
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref MyAWSamiID
+      InstanceType: t2.micro
+      SecurityGroups:
+           - !ImportValue thirumaleshsec
+  
+
+
+Outputs:
+  StackSSHSecGroup:
+    Value: !Ref secgrphttpallow
+    Export:
+      Name: thirumaleshsec

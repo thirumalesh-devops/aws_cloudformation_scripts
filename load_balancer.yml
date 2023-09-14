@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: ThiruLoadBalancer
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - subnet-0d0198233b5d15ea9
+        - subnet-0b8c736975117ebec
+      SecurityGroups:
+        - sg-057b03c8e2eadb61d
+      Tags:
+        - Key: Name
+          Value: ThiruLoadBalancer
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: ThiruTargetGroup
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: vpc-09cb7e32633cb0cc1
+      Tags:
+        - Key: Name
+          Value: ThiruTargetGroup
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref MyLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+  
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0d13e3e640877b0b9
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - sg-057b03c8e2eadb61d
+      SubnetId: subnet-0d0198233b5d15ea9
+      Tags:
+        - Key: Name
+          Value: MyInstanceThiru
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          #user data
+          #update the OS
+          yum update -y
+          yum install httpd -y
+          systemctl enable httpd
+          systemctl start httpd
+          echo "<html><h1>Welcome to my web page. You are getting this page from $(hostname -f) server. </h1><br>Your 🌏 server configured successfully with full of LOVE ❤........</html>">/var/www/html/index.html
+      DependsOn: !Ref Listener
+  

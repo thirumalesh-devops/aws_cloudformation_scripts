@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for creating CloudWatch Dashboard and Alarm'
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-008b85aa3ff5c1b02
+      InstanceType: t2.micro
+      KeyName: redhat.linux
+      SecurityGroups:
+        - !Ref sec20grphttpallow
+  sec20grphttpallow:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription : SG to create
+      GroupName: mysecgrp
+      SecurityGroupIngress : 
+       - IpProtocol : tcp
+         FromPort : 80
+         ToPort : 80
+         CidrIp : 0.0.0.0/0
+       - IpProtocol: tcp
+         FromPort: 22
+         ToPort: 22
+         CidrIp: 0.0.0.0/0
+  MyCloudWatchDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: MyDashboard-thirumalesh
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                  [ { "expression": "ANOMALY_DETECTION_BAND(m1)", "label": "CPU Utilization Anomaly Band" } ],
+                  [ "AWS/EC2", "CPUUtilization", "InstanceId", "YourEC2InstanceId" ]
+                ],
+                "region": "ap-south-1",
+                "title": "CPU Utilization",
+                "stat": "Average",
+                "period": 30
+              }
+            }
+          ]
+        }
+
+  MyCloudWatchAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: MyCPUUtilizationAlarm
+      AlarmDescription: Alarm if CPU utilization exceeds 80% for 2 consecutive periods
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 30
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref MySNSTopic 
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref MyEC2Instance
+          
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: MySNSDisplayName
+      TopicName: MySNSTopiThiru
+
+  MySNSTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: thiru.govinda789@gmail.com # Replace this with your email address to receive email notifications
+      Protocol: email
+      TopicArn: !Ref MySNSTopic

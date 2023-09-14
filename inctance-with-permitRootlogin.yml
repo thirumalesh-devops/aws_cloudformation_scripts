@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create an EC2 instance with UserData to create a user and set password."
+
+Parameters:
+  InstanceType:
+    Description: "EC2 instance type"
+    Type: String
+    Default: "t2.micro"
+    AllowedValues:
+      - "t2.micro"
+      - "t2.small"
+      - "t2.medium"
+Resources:
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: ami-072ec8f4ea4a6f2cf
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install sed -y
+          useradd book
+          echo "book:root123" | chpasswd
+          echo "root:root123" | chpasswd
+          sed -i '/PasswordAuthentication no/d' /etc/ssh/sshd_config    
+          echo "PermitRootLogin Yes">>/etc/ssh/sshd_config
+          echo "PasswordAuthentication Yes">>/etc/ssh/sshd_config
+          systemctl restart sshd
+
+ #sed -i 's/old_line/new_line/' /path/to/your/file
+ #The above command is used to modify the line insted of deleteing the line

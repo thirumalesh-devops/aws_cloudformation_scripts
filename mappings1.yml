@@ -1,0 +1,24 @@
+Mappings:
+  RegionTypeami:
+    us-east-1:
+      test: ami-06ca3ca175f37dd66
+      prod: ami-005b11f8b84489615
+    us-east-2:
+      test: ami-069d73f3235b535bd
+      prod: ami-08778753ef37aa408
+Parameters:
+  envtype:
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+      - prod
+    Description: Enter the Environment Type (either test or prod)
+Resources:
+  myweb:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionTypeami, !Ref "AWS::Region", !Ref envtype]
+      InstanceType: t2.micro
+  
+

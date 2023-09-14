@@ -1,0 +1,60 @@
+Parameters: 
+  MyKeyName:
+    Description: select the key MyKeyName
+    Type: AWS::EC2::KeyPair::KeyName
+  EnvironmentType: 
+    Description: The environment type
+    Type: String
+    Default: test
+    AllowedValues: 
+      - prod
+      - test
+    Description: must be a prod or test
+Mappings: 
+  RegionAMIID: 
+    ap-south-1: 
+      test: "ami-0d13e3e640877b0b9"
+      prod: "ami-006935d9a6773e4ec"
+    us-west-2: 
+      test: "ami-0507f77897697c4ba"
+      prod: "ami-0ae49954dfb447966"  
+  MyEnvironmentMap:
+    dev:
+      InstanceType: t2.micro
+    prod:
+      InstanceType: t2.small
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap 
+      - RegionAMIID
+      - !Ref AWS::Region
+      - prod
+      InstanceType: !FindInMap 
+      - MyEnvironmentMap
+      - !Ref EnvironmentType
+      - InstanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups:
+      - !Ref MySecGrp
+  MySecGrp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SecGrpAllowSSH
+      GroupDescription: "allow SSH"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+Outputs:
+  MyDNSName:
+    Description: My DNS name
+    Value: !GetAtt MyInstance.PublicDnsName
+  outputUbuntuInstance:
+    Description: A reference to the created EC2 Instance
+    Value: !Ref MyInstance
+  AvailabilityZone:
+    Description: "Availability zone"
+    Value: !GetAtt MyInstance.AvailabilityZone

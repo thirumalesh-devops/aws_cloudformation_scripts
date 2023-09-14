@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: keypair-keys-tiru
+      #PublicKeyMaterial: !Sub "{{resolve:secretsmanager:${PublicKeySecretArn}:SecretString}}"
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0d13e3e640877b0b9 
+      InstanceType: t2.micro
+      KeyName: !Ref MyKeyPair
+Outputs:
+  KeyNameOutput:
+    Description: The name of the EC2 Key Pair
+    Value: !Ref MyKeyPair
+  KeyFingerprintOutput:
+    Description: The fingerprint of the EC2 Key Pair
+    Value: !GetAtt MyKeyPair.KeyFingerprint
+  KeyPairLocationOutput:
+    Description: The location where the EC2 Key Pair is saved
+    Value: !Sub s3://${AWS::AccountId}-${AWS::Region}-${MyKeyPair}

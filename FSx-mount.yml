@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create an EC2 instance, FSx for Lustre file system, and attach the Lustre file system to the instance.
+
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: t2.micro
+    Description: EC2 instance type
+  KeyPairNameParameter:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of the existing EC2 Key Pair
+  LustreFileSystemCapacityParameter:
+    Type: Number
+    Default: 1200
+    Description: Capacity of the FSx for Lustre file system (in GiB)
+  SubnetIdParameter:
+    Type: AWS::EC2::Subnet::Id
+    Description: ID of the subnet where the EC2 instance will be launched
+
+Resources:
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: !Ref InstanceTypeParameter
+      ImageId: "ami-0ded8326293d3201b"  # Replace with your desired AMI ID
+      KeyName: !Ref KeyPairNameParameter
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup
+
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Enable SSH and Lustre traffic"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"  # Adjust the allowed IP range as needed
+        - IpProtocol: "tcp"
+          FromPort: 988  # Lustre TCP port
+          ToPort: 988
+          CidrIp: "0.0.0.0/0"
+
+  LustreFileSystem:
+    Type: AWS::FSx::FileSystem
+    Properties:
+      FileSystemType: "LUSTRE"
+      StorageCapacity: !Ref LustreFileSystemCapacityParameter
+      SubnetIds:
+        - !Ref SubnetIdParameter
+      LustreConfiguration:
+        AutoImportPolicy: "NEW"
+        CopyTagsToBackups: true
+        DeploymentType: "PERSISTENT_1"
+        PerUnitStorageThroughput: 200
+        DataCompressionType: "LZ4"
+        ImportPath: !Join ["", ["s3://", !ImportValue LustreCFNS3ImportBucketName]]
+        ExportPath: !Join ["", ["s3://", !ImportValue LustreCFNS3ExportPath]]
+        WeeklyMaintenanceStartTime: "2:20:30"
+
+  MountScript:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: "t2.micro"  
+      ImageId: "ami-0ded8326293d3201b" 
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          mkfs.lustre --fsname=mylustrefsx ${LustreFileSystem.DnsName}@tcp:/${LustreFileSystem.FileSystemId}
+          mkdir /mnt/fsx
+          mount -t lustre ${LustreFileSystem.DnsName}@tcp:/${LustreFileSystem.FileSystemId}:/ /mnt/fsx
+      SecurityGroups:
+        - !Ref LustreMountSecurityGroup
+      KeyName: !Ref KeyPairNameParameter
+
+  LustreMountSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Enable Lustre mount access"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 988  # Lustre TCP port
+          ToPort: 988
+          CidrIp: "0.0.0.0/0"  # Adjust the allowed IP range as needed

@@ -1,0 +1,29 @@
+---
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-072ec8f4ea4a6f2cf
+      InstanceType: t2.micro
+      SubnetId: subnet-0d0198233b5d15ea9
+      KeyName: redhat.linux
+  myENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Tags:
+      - Key: stack
+        Value: production
+      Description: A nice description.
+      SourceDestCheck: 'false'
+      GroupSet:
+        - sg-0a48b58a318d99b39
+      SubnetId: subnet-0d0198233b5d15ea9
+      #PrivateIpAddress: 10.31.0.0
+        #- !GetAtt MyInstance.PrivateIPv4Address
+  NetworkInterfaceAttachment:
+   Type: AWS::EC2::NetworkInterfaceAttachment
+   Properties:
+      InstanceId: !Ref MyInstance
+      NetworkInterfaceId: !Ref myENI
+      DeviceIndex: 1    
+        

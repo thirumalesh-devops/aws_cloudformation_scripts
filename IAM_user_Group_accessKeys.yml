@@ -1,0 +1,49 @@
+#AWSTemplateFormatVersion: '2010-09-09'
+#Resources:
+#  MyIAMGroup:
+#    Type: AWS::IAM::Group
+#    Properties:
+#      GroupName: KALLU-GROUP
+# MyIAMUser:
+#   Type: AWS::IAM::User
+#   Properties:
+#      UserName: KALLU
+#  MyIAMAccessKey:
+#    Type: AWS::IAM::AccessKey
+#    Properties:
+#      UserName: !Ref MyIAMUser
+#  MyIAMUserGroupAddition:
+#    Type: AWS::IAM::UserToGroupAddition
+#    Properties:
+#      GroupName: !Ref MyIAMGroup
+#      Users:
+#        - !Ref MyIAMUser
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation StackSet to create IAM users and access keys
+
+Parameters:
+  UserName:
+    Type: String
+    Description: List of IAM user names to create
+    Default: chandramouli
+    AllowedValues:
+      - chandramouli
+      - thirumalesh 
+      - radha
+
+Resources:
+  IAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+
+  IAMAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref IAMUser
+
+Outputs:
+  UserAccessKeys:
+    Description: Access keys for the created users
+    Value: !Join [",", [!Ref UserName, !GetAtt IAMAccessKey.SecretAccessKey]]

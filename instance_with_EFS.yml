@@ -1,0 +1,66 @@
+---
+Resources:
+  MyEFS:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Name
+          Value: MyEFS
+      LifecyclePolicies:
+        - TransitionToIA: AFTER_30_DAYS
+  AccessPointResource:
+    Type: 'AWS::EFS::AccessPoint'
+    Properties:
+      FileSystemId: !Ref MyEFS
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+        SecondaryGids:
+          - "1001"
+          - "1002"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "708798"
+          OwnerUid: "7987987"
+          Permissions: "0755"
+        Path: "/EFS/tiru"
+  MyMountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref MyEFS
+      SubnetId: subnet-0d0198233b5d15ea9
+      SecurityGroups:
+        - sg-057b03c8e2eadb61d
+
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-008b85aa3ff5c1b02
+      InstanceType: t2.micro
+      KeyName: redhat.linux
+      SubnetId: subnet-0d0198233b5d15ea9
+      SecurityGroupIds: 
+        - sg-057b03c8e2eadb61d
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install -y amazon-efs-utils
+          mkdir /efs/thirumalesh
+          mount -t efs -o tls,iam $(MyEFS):/ /efs/thirumalesh
+
+  MyInstanceEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref MyInstance
+
+  MyInstanceEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref MyInstance
+      EIP: !Ref MyInstanceEIP
+  

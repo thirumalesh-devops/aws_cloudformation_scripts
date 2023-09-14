@@ -1,0 +1,59 @@
+---
+Parameters:
+  ImageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: t2.micro
+      KeyName: redhat.linux
+      SecurityGroups:
+        - !Ref sec20grphttpallow
+      VpcId: !Ref MyVPC
+  sec20grphttpallow:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription : SG to create
+      GroupName: mysecgrp
+      SecurityGroupIngress : 
+       - IpProtocol : tcp
+         FromPort : 80
+         ToPort : 80
+         CidrIp : 0.0.0.0/0
+       - IpProtocol: tcp
+         FromPort: 22
+         ToPort: 22
+         CidrIp: 0.0.0.0/0
+  MyVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.143.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+  MyPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVPC
+      CidrBlock: 192.143.16.0/20
+      MapPublicIpOnLaunch: true
+  myNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      Tags:
+      - Key: stack
+        Value: production
+      Description: A nice description.
+      SourceDestCheck: 'false'
+      GroupSet: !Ref sec20grphttpallow
+      SubnetId: !Ref MyPublicSubnet
+      PrivateIpAddress: 192.143.0.16
+  NetworkInterfaceAttachment:
+    Type: AWS::EC2::NetworkInterfaceAttachment
+    Properties:
+      InstanceId: !Ref MyEC2Instance
+      NetworkInterfaceId: !Ref myNetworkInterface
+     DeviceIndex: 1    
+        

@@ -1,0 +1,12 @@
+Resources:
+  DNS: 
+    Type: "AWS::Route53::HostedZone"
+
+    Properties: 
+      HostedZoneConfig: 
+        Comment: 'My hosted zone for example.com'
+      Name: 'msanjeevi.com'
+      VPCs: 
+        - 
+          VPCId: 'vpc-0e218d8ff4358a353'
+          VPCRegion: 'us-west-2'

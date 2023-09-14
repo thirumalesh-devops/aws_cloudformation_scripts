@@ -1,0 +1,78 @@
+Parameters:
+  imageId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64
+Resources:
+  DNS: 
+    Type: "AWS::Route53::HostedZone"
+    Properties: 
+      HostedZoneConfig: 
+        Comment: 'My hosted zone for example.com'
+      Name: 'msanjeevi.com.'
+      VPCs: 
+        - 
+          VPCId: 'vpc-0e218d8ff4358a353'
+          VPCRegion: 'us-west-2'
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref imageId
+      InstanceType: t2.micro
+      KeyName: redhat.linux
+      SecurityGroups:
+           - !Ref MySecurityGroup
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            yum update -y
+            yum install httpd -y
+            systemctl enable httpd
+            systemctl start httpd
+            echo "<html><h1>Welcome to the web page$(hostname -f)server <br>web server configured successfully</h1></html>">/var/www/html/index.html
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My Security Group
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+  MyElasticIp:
+    Type: AWS::EC2::EIP
+    Properties: 
+      InstanceId: !Ref MyEC2Instance
+  MyEC2Instance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref imageId
+      InstanceType: t2.micro
+      KeyName: redhat.linux
+      SecurityGroups:
+           - !Ref MySecurityGroup
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            yum update -y
+            yum install httpd -y
+            systemctl enable httpd
+            systemctl start httpd
+            echo "<html><h1>Welcome to my web page. You are getting this page from $(hostname -f) server. </h1><br>Your 🌏 server configured successfully with full of LOVE ❤........</html>">/var/www/html/index.html
+  MyElasticIp:
+    Type: AWS::EC2::EIP
+    Properties: 
+      InstanceId: !Ref MyEC2Instance1
+  myDNSRecord2:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref DNS
+      Name: manshiltir.msanjeevi.com.
+      Type: A
+      TTL: '30'
+      ResourceRecords:
+      - !GetAtt "MyEC2Instance.PublicIp" 
+      - !GetAtt "MyEC2Instance1.PublicIp" 

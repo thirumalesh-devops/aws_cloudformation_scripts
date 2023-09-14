@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create a demo launch template
+
+Parameters:
+  keyId:
+    Type: AWS::EC2::KeyPair::KeyName
+  instanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.medium
+      - t2.large
+  environment:
+    Type: String
+    Default: development
+    AllowedValues:
+      - development
+      - production
+  vpcId:
+    Type: AWS::EC2::VPC::Id
+  subnetId:
+    Type: AWS::EC2::Subnet::Id
+
+Mappings:
+  amiMap:
+    ap-south-1:
+      amiId: ami-0d13e3e640877b0b9
+    us-east-1:
+      amiId: ami-05548f9cecf47b442
+
+Resources:
+  instanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: IAM role used for our Launch template demo session
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: environment
+          Value: !Ref environment
+
+  instanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DependsOn:
+      - instanceRole
+    Properties:
+      Roles:
+        - !Ref instanceRole
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for our launch template demo session
+      VpcId: !Ref vpcId
+      Tags:
+        - Key: environment
+          Value: !Ref environment
+
+  demoLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    DependsOn:
+      - instanceProfile
+      - SecurityGroup
+    Properties:
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              DeleteOnTermination: True
+              Encrypted: True
+              Iops: 3000
+              KmsKeyId: !Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${keyId}'
+              Throughput: 125
+              VolumeSize: 20
+              VolumeType: gp3
+        EbsOptimized: True
+        IamInstanceProfile:
+          Arn: !GetAtt instanceProfile.Arn
+        ImageId: !FindInMap [ amiMap, !Ref 'AWS::Region', amiId ]
+        InstanceType: !Ref instanceType
+        MetadataOptions:
+          HttpTokens: required
+        Monitoring:
+          Enabled: True
+        SecurityGroupIds:
+          - !GetAtt SecurityGroup.GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub '${AWS::StackName}-${environment}'
+              - Key: environment
+                Value: !Ref environment
+      TagSpecifications:
+        - ResourceType: launch-template
+          Tags:
+            - Key: environment
+              Value: !Ref environment
+
+  #demoEC2Instance:
+  #  Type: AWS::EC2::Instance
+  #  DependsOn:
+  #    - demoLaunchTemplate
+  #  Properties:
+  #    LaunchTemplate:
+  #      LaunchTemplateId: !Ref demoLaunchTemplate
+  #      Version: !GetAtt demoLaunchTemplate.DefaultVersionNumber
+  #    SubnetId: !Ref subnetId
+
+Outputs:
+  launchTemplateId:
+    Value: !Ref demoLaunchTemplate
+    Export:
+      Name: !Sub '${AWS::StackName}-lt-id'

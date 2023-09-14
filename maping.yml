@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Mappings: 
+  RegionMap: 
+    us-east-1:
+      test: ami-05548f9cecf47b442
+      prod: ami-053b0d53c279acc90
+    us-east-2:
+      test: ami-00c6c849418b7612c
+      prod: ami-024e6efaf93d85776
+Parameters:
+  EnvType: 
+    Type: String
+    Default: test
+    AllowedValues:
+         - test
+         - prod
+    Description: enter the ene type
+Resources: 
+  myEC2Instance: 
+    Type: "AWS::EC2::Instance"
+    Properties: 
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", !Ref EnvType]
+      InstanceType: t2.micro
+Outputs: 
+  TestOutput: 
+    Description: Return the name of the AMI ID that matches the region and environment type keys
+    Value: !FindInMap [RegionMap, !Ref "AWS::Region", !Ref EnvType]      
